@@ -78,6 +78,43 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
+// Get orders with optional status filter
+app.get('/api/orders', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const query = status ? { status: status.toUpperCase() } : {};
+    
+    logger.info('Fetching orders:', { 
+      status: status || 'ALL',
+      query
+    });
+
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    logger.info('Orders fetched successfully:', { 
+      count: orders.length,
+      status: status || 'ALL'
+    });
+
+    res.json({
+      success: true,
+      orders
+    });
+  } catch (error) {
+    logger.error('Error fetching orders:', {
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching orders',
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/orders', async (req, res) => {
   try {
     const { userId, product, quantity } = req.body;

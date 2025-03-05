@@ -1,11 +1,15 @@
 # Real-time Order Processing System with Kafka & Redis
 
-A scalable, real-time order processing system built with microservices architecture, using Kafka for event streaming, Redis for real-time updates, and MongoDB for data persistence.
+A scalable, real-time order processing system built with microservices architecture, using Kafka for event streaming and MongoDB for data persistence. This system demonstrates advanced order management capabilities with real-time status updates, filtering, and comprehensive order tracking.
 
 ## 📸 Screenshots
 
-### Dashboard UI
-![Order Dashboard](docs/images/dashboard.png)
+### Dashboard UI with Status Filtering
+![Order Dashboard with Filtering](docs/images/dashboard2.png)
+*Enhanced order dashboard featuring status-based filtering, real-time updates, and detailed order tracking*
+
+### Original Dashboard
+![Original Dashboard](docs/images/dashboard.png)
 *Real-time order dashboard showing statistics and recent orders*
 
 ### API Gateway Logs
@@ -15,14 +19,17 @@ A scalable, real-time order processing system built with microservices architect
 ## 🏗 Architecture
 
 - **API Gateway**: Node.js service handling incoming requests and WebSocket connections
-- **Kafka**: Message broker for reliable event streaming
+- **Kafka**: Message broker for reliable event streaming and order processing
 - **Redis**: Real-time updates and caching
-- **MongoDB**: Order data persistence
-- **React Dashboard**: Real-time order monitoring and statistics
+- **MongoDB**: Order data persistence with status tracking
+- **React Dashboard**: Real-time order monitoring with advanced filtering and statistics
 
 ## 🚀 Features
 
-- Real-time order processing and updates
+- Real-time order processing and status updates
+- Advanced order filtering (All, Pending, Processed, Failed)
+- Detailed order tracking with timestamps
+- Status-based color coding for better visibility
 - Mock order generation with Faker.js
 - Live order statistics and charts
 - WebSocket connection status monitoring

@@ -26,7 +26,7 @@ const PRODUCT_LIST = [
 
 const API_URL = 'http://localhost:4000'; // Updated to use port 4000
 
-const MockOrderForm = () => {
+const MockOrderForm = ({ onOrderCreated }) => {
   const [order, setOrder] = useState({
     userId: faker.number.int({ min: 1000, max: 9999 }),
     product: PRODUCT_LIST[0],
@@ -67,6 +67,9 @@ const MockOrderForm = () => {
           severity: 'success',
         });
         generateRandomOrder();
+        if (onOrderCreated) {
+          onOrderCreated();
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create order');
