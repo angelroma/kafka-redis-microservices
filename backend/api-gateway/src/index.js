@@ -4,6 +4,7 @@ const cors = require("cors");
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { Kafka } = require('kafkajs');
+const logger = require('./utils/logger');
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,6 +20,17 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info(`Incoming ${req.method} request to ${req.url}`, {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    ip: req.ip
+  });
+  next();
+});
+
 // Kafka configuration
 const kafka = new Kafka({
   clientId: 'api-gateway',
@@ -31,9 +43,9 @@ const producer = kafka.producer();
 const connectProducer = async () => {
   try {
     await producer.connect();
-    console.log('✅ Connected to Kafka');
+    logger.info('✅ Connected to Kafka');
   } catch (error) {
-    console.error('❌ Failed to connect to Kafka:', error);
+    logger.error('❌ Failed to connect to Kafka:', { error: error.message, stack: error.stack });
   }
 };
 
@@ -41,15 +53,20 @@ connectProducer();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('👤 Client connected:', socket.id);
+  logger.info('👤 Client connected', { socketId: socket.id });
 
   socket.on('disconnect', () => {
-    console.log('👤 Client disconnected:', socket.id);
+    logger.info('👤 Client disconnected', { socketId: socket.id });
+  });
+
+  socket.on('error', (error) => {
+    logger.error('Socket error:', { socketId: socket.id, error: error.message });
   });
 });
 
-// Routes will be added here
+// Routes
 app.get("/health", (req, res) => {
+  logger.info('Health check endpoint called');
   res.status(200).json({ status: "OK" });
 });
 
@@ -61,6 +78,8 @@ app.post('/order', async (req, res) => {
       status: 'PENDING',
       createdAt: new Date().toISOString()
     };
+
+    logger.info('Processing new order:', { orderId: order.orderId });
 
     // Send to Kafka
     await producer.send({
@@ -76,14 +95,24 @@ app.post('/order', async (req, res) => {
     // Emit the order to all connected clients
     io.emit('order_processed', order);
 
-    console.log('📦 Order sent to Kafka:', order);
+    logger.info('📦 Order processed successfully', { 
+      orderId: order.orderId,
+      userId: order.userId,
+      product: order.product
+    });
+
     res.status(200).json({ 
       message: 'Order created successfully', 
       orderId: order.orderId 
     });
 
   } catch (error) {
-    console.error('❌ Error creating order:', error);
+    logger.error('❌ Error processing order:', { 
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+
     res.status(500).json({ 
       error: 'Failed to create order',
       details: error.message 
@@ -92,16 +121,17 @@ app.post('/order', async (req, res) => {
 });
 
 const server = httpServer.listen(port, () => {
-  console.log(`🚀 API Gateway running on port ${port}`);
+  logger.info(`🚀 API Gateway running on port ${port}`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   try {
     await producer.disconnect();
+    logger.info('Gracefully shutting down API Gateway');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error during shutdown:', error);
+    logger.error('❌ Error during shutdown:', { error: error.message });
     process.exit(1);
   }
 });

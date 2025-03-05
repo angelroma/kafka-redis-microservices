@@ -2,7 +2,15 @@
 
 A scalable, real-time order processing system built with microservices architecture, using Kafka for event streaming, Redis for real-time updates, and MongoDB for data persistence.
 
+## 📸 Screenshots
+
+### Dashboard UI
 ![Order Dashboard](docs/images/dashboard.png)
+*Real-time order dashboard showing statistics and recent orders*
+
+### API Gateway Logs
+![API Gateway Console](docs/images/api_gateway_console.png)
+*API Gateway console showing structured logging with Winston*
 
 ## 🏗 Architecture
 

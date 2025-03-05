@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import OrderTable from './OrderTable';
 import OrderChart from './OrderChart';
 import MockOrderForm from '../MockOrderForm/MockOrderForm';
+import logger from '../../utils/logger';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -11,23 +12,30 @@ const Dashboard = () => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   useEffect(() => {
+    logger.info('Initializing WebSocket connection');
+    
     // Connect to WebSocket server
     const newSocket = io('http://localhost:4000', {
       transports: ['websocket', 'polling']
     });
 
     newSocket.on('connect', () => {
-      console.log('✅ Connected to WebSocket server');
+      logger.info('WebSocket connected', { socketId: newSocket.id });
       setConnectionStatus('connected');
     });
 
     newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from WebSocket server');
+      logger.warn('WebSocket disconnected', { socketId: newSocket.id });
+      setConnectionStatus('disconnected');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      logger.error('WebSocket connection error', error);
       setConnectionStatus('disconnected');
     });
 
     newSocket.on('order_processed', (newOrder) => {
-      console.log('📦 New order received:', newOrder);
+      logger.info('New order received', { orderId: newOrder.orderId });
       setOrders((prevOrders) => [newOrder, ...prevOrders]);
     });
 
@@ -36,16 +44,28 @@ const Dashboard = () => {
     // Cleanup on unmount
     return () => {
       if (newSocket) {
+        logger.info('Closing WebSocket connection', { socketId: newSocket.id });
         newSocket.close();
       }
     };
   }, []);
 
+  // Log orders state changes
+  useEffect(() => {
+    logger.debug('Orders updated', { count: orders.length });
+  }, [orders]);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Order Dashboard
-        <Typography variant="caption" sx={{ ml: 2, color: connectionStatus === 'connected' ? 'success.main' : 'error.main' }}>
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            ml: 2, 
+            color: connectionStatus === 'connected' ? 'success.main' : 'error.main' 
+          }}
+        >
           ({connectionStatus})
         </Typography>
       </Typography>

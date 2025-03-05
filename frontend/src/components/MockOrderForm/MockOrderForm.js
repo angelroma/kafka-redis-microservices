@@ -11,6 +11,7 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
+import logger from '../../utils/logger';
 
 const PRODUCT_LIST = [
   'Laptop',
@@ -34,15 +35,19 @@ const MockOrderForm = () => {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
   const generateRandomOrder = () => {
-    setOrder({
+    const newOrder = {
       userId: faker.number.int({ min: 1000, max: 9999 }),
       product: PRODUCT_LIST[Math.floor(Math.random() * PRODUCT_LIST.length)],
       quantity: faker.number.int({ min: 1, max: 10 }),
-    });
+    };
+    logger.debug('Generated random order', newOrder);
+    setOrder(newOrder);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    logger.info('Submitting order', order);
+
     try {
       const response = await fetch(`${API_URL}/order`, {
         method: 'POST',
@@ -54,17 +59,21 @@ const MockOrderForm = () => {
 
       if (response.ok) {
         const result = await response.json();
+        logger.info('Order created successfully', { orderId: result.orderId });
+        
         setNotification({
           open: true,
           message: `Order created successfully! Order ID: ${result.orderId}`,
           severity: 'success',
         });
-        generateRandomOrder(); // Generate new random values after successful submission
+        generateRandomOrder();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create order');
       }
     } catch (error) {
+      logger.error('Failed to create order', error);
+      
       setNotification({
         open: true,
         message: 'Failed to create order: ' + error.message,
@@ -74,10 +83,16 @@ const MockOrderForm = () => {
   };
 
   const handleChange = (e) => {
-    setOrder({
+    const updatedOrder = {
       ...order,
       [e.target.name]: e.target.value,
+    };
+    logger.debug('Order form updated', { 
+      field: e.target.name, 
+      value: e.target.value,
+      order: updatedOrder 
     });
+    setOrder(updatedOrder);
   };
 
   return (
