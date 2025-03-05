@@ -34,9 +34,31 @@ const Dashboard = () => {
       setConnectionStatus('disconnected');
     });
 
-    newSocket.on('order_processed', (newOrder) => {
+    newSocket.on('orderCreated', (newOrder) => {
       logger.info('New order received', { orderId: newOrder.orderId });
       setOrders((prevOrders) => [newOrder, ...prevOrders]);
+    });
+
+    newSocket.on('orderProcessed', (processedOrder) => {
+      logger.info('Order processed', { orderId: processedOrder.orderId });
+      setOrders((prevOrders) => 
+        prevOrders.map(order => 
+          order.orderId === processedOrder.orderId 
+            ? { ...order, status: 'PROCESSED', processedAt: processedOrder.processedAt }
+            : order
+        )
+      );
+    });
+
+    newSocket.on('orderFailed', (failedOrder) => {
+      logger.info('Order failed', { orderId: failedOrder.orderId, error: failedOrder.error });
+      setOrders((prevOrders) => 
+        prevOrders.map(order => 
+          order.orderId === failedOrder.orderId 
+            ? { ...order, status: 'FAILED', failedAt: failedOrder.failedAt, error: failedOrder.error }
+            : order
+        )
+      );
     });
 
     setSocket(newSocket);

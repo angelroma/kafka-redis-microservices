@@ -3,8 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const { Kafka } = require('kafkajs');
+const { Kafka, Partitioners } = require('kafkajs');
 const logger = require('./utils/logger');
+const connectDB = require('./config/db');
+const Order = require('./models/Order');
+const mongoose = require('mongoose');
 
 const app = express();
 const httpServer = createServer(app);
@@ -15,7 +18,7 @@ const io = new Server(httpServer, {
   }
 });
 
-const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
@@ -37,7 +40,12 @@ const kafka = new Kafka({
   brokers: ['localhost:9092']
 });
 
-const producer = kafka.producer();
+const producer = kafka.producer({
+  createPartitioner: Partitioners.LegacyPartitioner
+});
+
+// Connect to MongoDB
+connectDB();
 
 // Connect to Kafka
 const connectProducer = async () => {
@@ -53,10 +61,10 @@ connectProducer();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  logger.info('👤 Client connected', { socketId: socket.id });
+  logger.info(`Client connected: ${socket.id}`);
 
   socket.on('disconnect', () => {
-    logger.info('👤 Client disconnected', { socketId: socket.id });
+    logger.info(`Client disconnected: ${socket.id}`);
   });
 
   socket.on('error', (error) => {
@@ -70,68 +78,123 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
-app.post('/order', async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
-    const order = {
-      ...req.body,
-      orderId: Date.now().toString(),
-      status: 'PENDING',
-      createdAt: new Date().toISOString()
-    };
+    const { userId, product, quantity } = req.body;
+    const orderId = `ORD-${Date.now()}`;
 
-    logger.info('Processing new order:', { orderId: order.orderId });
+    logger.info('Creating new order:', { 
+      orderId, 
+      userId, 
+      product, 
+      quantity,
+      timestamp: new Date().toISOString()
+    });
+
+    // Create order in MongoDB
+    const order = new Order({
+      orderId,
+      userId,
+      product,
+      quantity,
+      status: 'PENDING'
+    });
+
+    logger.debug('Order model created:', { 
+      order: order.toJSON(),
+      collection: order.collection.name,
+      modelName: order.constructor.modelName
+    });
+
+    const savedOrder = await order.save();
+    logger.info('Order saved to MongoDB:', { 
+      orderId: savedOrder.orderId,
+      id: savedOrder._id,
+      status: savedOrder.status,
+      collection: savedOrder.collection.name,
+      modelName: savedOrder.constructor.modelName
+    });
 
     // Send to Kafka
+    const kafkaMessage = {
+      orderId,
+      userId,
+      product,
+      quantity,
+      timestamp: Date.now()
+    };
+
+    logger.debug('Sending order to Kafka:', { 
+      topic: 'order-created',
+      message: kafkaMessage
+    });
+
     await producer.send({
-      topic: 'order_created',
+      topic: 'order-created',
       messages: [
         { 
-          key: order.orderId,
-          value: JSON.stringify(order)
+          key: orderId,
+          value: JSON.stringify(kafkaMessage)
         }
       ]
     });
 
-    // Emit the order to all connected clients
-    io.emit('order_processed', order);
-
-    logger.info('📦 Order processed successfully', { 
-      orderId: order.orderId,
-      userId: order.userId,
-      product: order.product
+    logger.info('Order sent to Kafka:', { 
+      orderId,
+      topic: 'order-created'
     });
 
-    res.status(200).json({ 
-      message: 'Order created successfully', 
-      orderId: order.orderId 
+    io.emit('orderCreated', savedOrder);
+    logger.debug('Socket.IO event emitted:', {
+      event: 'orderCreated',
+      order: savedOrder.toJSON()
     });
-
+    
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      order: savedOrder
+    });
   } catch (error) {
-    logger.error('❌ Error processing order:', { 
+    logger.error('Error creating order:', {
       error: error.message,
       stack: error.stack,
+      code: error.code,
       body: req.body
     });
-
-    res.status(500).json({ 
-      error: 'Failed to create order',
-      details: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error creating order',
+      error: error.message
     });
   }
 });
 
-const server = httpServer.listen(port, () => {
-  logger.info(`🚀 API Gateway running on port ${port}`);
-});
+const startServer = async () => {
+  try {
+    await producer.connect();
+    logger.info('Connected to Kafka');
+    
+    httpServer.listen(PORT, () => {
+      logger.info(`API Gateway running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error('Error starting server:', error);
+    process.exit(1);
+  }
+};
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   try {
     await producer.disconnect();
+    await mongoose.connection.close();
     logger.info('Gracefully shutting down API Gateway');
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Error during shutdown:', { error: error.message });
+    logger.error('Error during shutdown:', error);
     process.exit(1);
   }
 });
+
+startServer();

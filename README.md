@@ -108,26 +108,6 @@ KAFKA_BROKERS=localhost:9092
 REACT_APP_API_URL=http://localhost:4000
 ```
 
-## 📦 Project Structure
-
-```
-kafka-redis-microservices/
-├── backend/
-│   └── api-gateway/
-│       ├── src/
-│       │   └── index.js
-│       ├── .env
-│       └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Dashboard/
-│   │   │   └── MockOrderForm/
-│   │   └── App.js
-│   └── package.json
-└── docker-compose.yml
-```
-
 ## 🔍 Monitoring
 
 - **Kafka**: Monitor topics and messages using Kafka UI or command-line tools

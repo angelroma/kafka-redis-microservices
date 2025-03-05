@@ -49,7 +49,7 @@ const MockOrderForm = () => {
     logger.info('Submitting order', order);
 
     try {
-      const response = await fetch(`${API_URL}/order`, {
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ const MockOrderForm = () => {
         
         setNotification({
           open: true,
-          message: `Order created successfully! Order ID: ${result.orderId}`,
+          message: `Order created successfully! Order ID: ${result.order.orderId}`,
           severity: 'success',
         });
         generateRandomOrder();
