@@ -1,36 +1,107 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const WebSocket = require("ws");
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const { Kafka } = require('kafkajs');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
+const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
 
-// WebSocket server for real-time updates
-const wss = new WebSocket.Server({ noServer: true });
+// Kafka configuration
+const kafka = new Kafka({
+  clientId: 'api-gateway',
+  brokers: ['localhost:9092']
+});
 
-wss.on("connection", (ws) => {
-  console.log("New client connected");
+const producer = kafka.producer();
 
-  ws.on("close", () => {
-    console.log("Client disconnected");
+// Connect to Kafka
+const connectProducer = async () => {
+  try {
+    await producer.connect();
+    console.log('✅ Connected to Kafka');
+  } catch (error) {
+    console.error('❌ Failed to connect to Kafka:', error);
+  }
+};
+
+connectProducer();
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('👤 Client connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('👤 Client disconnected:', socket.id);
   });
 });
 
 // Routes will be added here
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy" });
+  res.status(200).json({ status: "OK" });
 });
 
-const server = app.listen(port, () => {
-  console.log(`API Gateway listening at http://localhost:${port}`);
+app.post('/order', async (req, res) => {
+  try {
+    const order = {
+      ...req.body,
+      orderId: Date.now().toString(),
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+
+    // Send to Kafka
+    await producer.send({
+      topic: 'order_created',
+      messages: [
+        { 
+          key: order.orderId,
+          value: JSON.stringify(order)
+        }
+      ]
+    });
+
+    // Emit the order to all connected clients
+    io.emit('order_processed', order);
+
+    console.log('📦 Order sent to Kafka:', order);
+    res.status(200).json({ 
+      message: 'Order created successfully', 
+      orderId: order.orderId 
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating order:', error);
+    res.status(500).json({ 
+      error: 'Failed to create order',
+      details: error.message 
+    });
+  }
 });
 
-server.on("upgrade", (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit("connection", ws, request);
-  });
+const server = httpServer.listen(port, () => {
+  console.log(`🚀 API Gateway running on port ${port}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  try {
+    await producer.disconnect();
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
 });
