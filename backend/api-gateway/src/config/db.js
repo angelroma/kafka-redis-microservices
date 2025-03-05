@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/order-management';
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/order-management';
     logger.info('Attempting to connect to MongoDB:', { uri: mongoURI });
     
     await mongoose.connect(mongoURI, {

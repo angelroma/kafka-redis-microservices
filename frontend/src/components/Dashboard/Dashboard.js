@@ -6,7 +6,7 @@ import OrderChart from './OrderChart';
 import MockOrderForm from '../MockOrderForm/MockOrderForm';
 import logger from '../../utils/logger';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = '';  // Empty string for relative paths
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);

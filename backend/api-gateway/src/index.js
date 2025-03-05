@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 // Kafka configuration
 const kafka = new Kafka({
   clientId: 'api-gateway',
-  brokers: ['localhost:9092']
+  brokers: ['kafka:29092']
 });
 
 const producer = kafka.producer({

@@ -240,6 +240,21 @@ A scalable, real-time order processing system built with microservices architect
    - Frontend: http://localhost:3000
    - API Gateway: http://localhost:4000
 
+5. **Stop Development Services**
+   ```bash
+   # Stop all running Node.js services (API Gateway, Order Service, Frontend)
+   # Press Ctrl+C in each terminal where the services are running
+
+   # Stop infrastructure services (Kafka, MongoDB, Redis, etc.)
+   docker-compose down
+
+   # To remove all containers and volumes (clean slate)
+   docker-compose down -v
+
+   # To remove all containers, volumes, and images
+   docker-compose down -v --rmi all
+   ```
+
 ### Production Mode (Containerized)
 
 1. **Build and Start All Services**

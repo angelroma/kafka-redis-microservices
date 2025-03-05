@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/order-management', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb:27017/order-management', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
@@ -22,7 +22,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/order-man
 // Kafka setup
 const kafka = new Kafka({
   clientId: 'order-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: ['kafka:29092']
 });
 
 const producer = kafka.producer({
