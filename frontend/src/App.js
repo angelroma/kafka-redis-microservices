@@ -1,17 +1,27 @@
 import React from 'react';
-import { Container, CssBaseline, Box } from '@mui/material';
-import OrderDashboard from './pages/OrderDashboard';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Dashboard from './components/Dashboard/Dashboard';
+
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
 function App() {
   return (
-    <>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-          <OrderDashboard />
-        </Box>
-      </Container>
-    </>
+      <Dashboard />
+    </ThemeProvider>
   );
 }
 
