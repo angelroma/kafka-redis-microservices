@@ -190,57 +190,123 @@ A scalable, real-time order processing system built with microservices architect
 
 ## 📋 Prerequisites
 
-- Node.js v18+
 - Docker and Docker Compose
-- npm or yarn
+- Git
 
-## 🛠 Installation & Setup
+## 🛠 Running the Application
 
-1. **Clone the repository**
+### Development Mode (Individual Services)
+
+1. **Start Infrastructure Services**
    ```bash
-   git clone <repository-url>
-   cd kafka-redis-microservices
-   ```
-
-2. **Start Infrastructure Services**
-   ```bash
+   # Start required infrastructure
    docker-compose up -d
    ```
-   This will start:
-   - Kafka & Zookeeper
-   - Redis
-   - MongoDB
 
-3. **Install API Gateway Dependencies**
+2. **Set Up Environment Variables**
    ```bash
+   # API Gateway (.env)
    cd backend/api-gateway
-   npm install
+   cp .env.example .env
+   
+   # Order Service (.env)
+   cd ../order-service
+   cp .env.example .env
+   
+   # Frontend (.env)
+   cd ../../frontend
+   cp .env.example .env
    ```
 
-4. **Install Frontend Dependencies**
+3. **Install Dependencies and Start Services**
    ```bash
-   cd frontend
-   npm install
-   ```
-
-## 🚀 Running the Application
-
-1. **Start the API Gateway**
-   ```bash
+   # Terminal 1 - API Gateway
    cd backend/api-gateway
+   npm install
    npm run dev
-   ```
-   The API Gateway will run on port 4000
 
-2. **Start the Frontend**
-   ```bash
+   # Terminal 2 - Order Service
+   cd backend/order-service
+   npm install
+   npm run dev
+
+   # Terminal 3 - Frontend
    cd frontend
+   npm install
    npm start
    ```
-   The React dashboard will run on port 3000
 
-3. **Access the Dashboard**
-   Open [http://localhost:3000](http://localhost:3000) in your browser
+4. **Access the Application**
+   - Frontend: http://localhost:3000
+   - API Gateway: http://localhost:4000
+
+### Production Mode (Containerized)
+
+1. **Build and Start All Services**
+   ```bash
+   # Build and start all services
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+   ```
+
+2. **Access the Application**
+   - Frontend: http://localhost:3000
+   - API Gateway: http://localhost:4000
+
+3. **Monitor Services**
+   ```bash
+   # View all container logs
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+
+   # View specific service logs
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f api-gateway
+   ```
+
+4. **Stop All Services**
+   ```bash
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+   ```
+
+### Development Tools
+
+1. **MongoDB Compass Connection**
+   ```
+   mongodb://localhost:27017/order-management
+   ```
+
+2. **Kafka Topics**
+   ```bash
+   # List topics
+   docker-compose exec kafka kafka-topics --list --bootstrap-server localhost:9092
+
+   # View messages in a topic
+   docker-compose exec kafka kafka-console-consumer --topic order-created --from-beginning --bootstrap-server localhost:9092
+   ```
+
+3. **Redis CLI**
+   ```bash
+   docker-compose exec redis redis-cli
+   ```
+
+### Monitoring and Debugging
+
+1. **View Service Logs**
+   ```bash
+   # Development mode
+   tail -f backend/api-gateway/logs/app.log
+   tail -f backend/order-service/logs/app.log
+
+   # Production mode
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+   ```
+
+2. **Check Service Health**
+   ```bash
+   # Development mode
+   curl http://localhost:4000/health
+
+   # Production mode
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml ps
+   ```
 
 ## 🎮 Using the Dashboard
 
